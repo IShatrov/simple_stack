@@ -1,5 +1,7 @@
 #include "simple_stack.h"
 
+#define SET_ERR_CODE(condition, code) if(condition) err_code |= (code)
+
 void stk_dump(FILE *log, my_stk *stk, int line, const char *file, const char *func, int err_code)
 {
     assert(log != NULL);
@@ -71,19 +73,20 @@ char stk_assert(my_stk *stk, int line, const char *file, const char *func)
         return 0;
     }
 
-    if(stk->data == NULL)         err_code |= NULL_DATA_PTR; // to-do: macros
-    if(stk->capacity <= 0)        err_code |= BAD_CAPACITY;
-    if(stk->size < 0)             err_code |= BAD_SIZE;
-    if(stk->capacity < stk->size) err_code |= CAPACITY_LESS_SIZE;
+    SET_ERR_CODE(stk->data == NULL, NULL_DATA_PTR);
+    SET_ERR_CODE(stk->capacity <= 0, BAD_CAPACITY);
+    SET_ERR_CODE(stk->size < 0, BAD_SIZE);
+    SET_ERR_CODE(stk->capacity < stk->size, CAPACITY_LESS_SIZE);
 
     #ifdef CANARY
-    // to-do: which canary dead?  && shorter string
-    if(stk->stk_cnry_l != (cnry)stk || stk->stk_cnry_r != (cnry)stk || *(stk->data_cnry_l) != (cnry)(stk->data) ||
-       *(stk->data_cnry_l) != (cnry)(stk->data)) err_code |= CANARY_DEAD;
+    SET_ERR_CODE(stk->stk_cnry_l != (cnry)stk, CANARY_DEAD);
+    SET_ERR_CODE(stk->stk_cnry_r != (cnry)stk, CANARY_DEAD);
+    SET_ERR_CODE(*(stk->data_cnry_l) != (cnry)(stk->data), CANARY_DEAD);
+    SET_ERR_CODE(*(stk->data_cnry_r) != (cnry)(stk->data), CANARY_DEAD);
     #endif
 
     #ifdef HASH
-    if(stk->hash_num != my_hash(stk, sizeof(*stk) - sizeof(unsigned long long int))) err_code |= WRONG_HASH;
+    SET_ERR_CODE(stk->hash_num != my_hash(stk, sizeof(*stk) - sizeof(unsigned long long int)), WRONG_HASH);
     #endif
 
     if(err_code != 0 && stk->log)

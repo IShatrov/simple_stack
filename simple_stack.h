@@ -18,18 +18,18 @@
 
 enum err_codes
 {
-    NULL_STK_PTR = 1, // to-do: <<
-    NULL_DATA_PTR = 2,
-    BAD_CAPACITY = 4,
-    BAD_SIZE = 8,
-    CAPACITY_LESS_SIZE = 16,
+    NULL_STK_PTR       = 1<<0,
+    NULL_DATA_PTR      = 1<<1,
+    BAD_CAPACITY       = 1<<2,
+    BAD_SIZE           = 1<<3,
+    CAPACITY_LESS_SIZE = 1<<4,
 
     #ifdef CANARY
-    CANARY_DEAD = 32,
+    CANARY_DEAD        = 1<<5,
     #endif
 
     #ifdef HASH
-    WRONG_HASH = 64,
+    WRONG_HASH         = 1<<6,
     #endif
 };
 
