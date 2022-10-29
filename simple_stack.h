@@ -25,11 +25,14 @@ enum err_codes
     CAPACITY_LESS_SIZE = 1<<4,
 
     #ifdef CANARY
-    CANARY_DEAD        = 1<<5,
+    CANARY_DEAD_LS        = 1<<5, //left stack
+    CANARY_DEAD_RS        = 1<<6, //right stack
+    CANARY_DEAD_LD        = 1<<7, //left data
+    CANARY_DEAD_RD        = 1<<8, //right data
     #endif
 
     #ifdef HASH
-    WRONG_HASH         = 1<<6,
+    WRONG_HASH         = 1<<9,
     #endif
 };
 
@@ -38,7 +41,13 @@ const ssize_t MIN_REC_CAPACITY = 30;
 typedef double stk_elem;
 
 #ifdef CANARY
-typedef unsigned long long int cnry;
+typedef struct
+{
+    stk_elem cnry1;
+    stk_elem cnry2;
+} cnry;
+
+const cnry CNRY_VAL = {12345, 54321};
 #endif
 
 struct var_info
@@ -59,7 +68,7 @@ struct simple_stk
     cnry *data_cnry_l;
     #endif
 
-    stk_elem *data; //to-do: separate struct
+    stk_elem *data;
 
     #ifdef CANARY
     cnry *data_cnry_r;
@@ -130,5 +139,10 @@ char stk_assert(my_stk *stk, int line, const char *file, const char *func);
 //! @return Returns hash of the array.
 //! @brief Calculates hash.
 unsigned long long int my_hash(const void *data, size_t size);
+
+//! @param[in] canary Pointer to canary.
+//! @return Returns 1 if canary is dead and 0 otherwise.
+//! @brief Checks if canary is dead,
+char check_cnry(void *canary);
 
 #endif

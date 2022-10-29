@@ -3,17 +3,16 @@
 void stk_ctor(my_stk *stk, ssize_t capacity, FILE *log, struct var_info info)
 {
     assert(capacity > 0);
-    assert(stk != NULL);             //to-do: double ctor?
+    assert(stk != NULL);
 
     #ifdef CANARY
-    // to-do:fatter canaries
-    stk->data_cnry_l = (cnry*)calloc(capacity + 2, sizeof(stk_elem));
+    stk->data_cnry_l = (cnry*)calloc(capacity + 4, sizeof(stk_elem));
     assert(stk->data_cnry_l != NULL);
-    stk->data = (stk_elem*)(stk->data_cnry_l) + 1;
-    stk->data_cnry_r = (stk->data_cnry_l) + capacity + 1;
+    stk->data = (stk_elem*)(stk->data_cnry_l) + 2;
+    stk->data_cnry_r = (cnry*)((stk_elem*)(stk->data_cnry_l) + capacity + 2);
 
-    *(stk->data_cnry_l) = (cnry)(stk->data); //to-do: fill cnries with hexspeak constants
-    *(stk->data_cnry_r) = (cnry)(stk->data);
+    *(stk->data_cnry_l) = CNRY_VAL;
+    *(stk->data_cnry_r) = CNRY_VAL;
     #else
     stk->data = (stk_elem*)calloc(capacity, sizeof(stk_elem));
     assert(stk->data != NULL);
@@ -27,8 +26,8 @@ void stk_ctor(my_stk *stk, ssize_t capacity, FILE *log, struct var_info info)
     stk->log = log;
 
     #ifdef CANARY
-    stk->stk_cnry_l = (cnry)stk;
-    stk->stk_cnry_r = (cnry)stk;
+    stk->stk_cnry_l = CNRY_VAL;
+    stk->stk_cnry_r = CNRY_VAL;
     #endif
 
     #ifdef HASH
@@ -51,16 +50,16 @@ void stk_recalloc(my_stk *stk, ssize_t new_cap)
     #endif
 
     #ifdef CANARY
-    stk->data_cnry_l = (cnry*)realloc(stk->data_cnry_l, (new_cap + 2)*sizeof(stk_elem));
+    stk->data_cnry_l = (cnry*)realloc(stk->data_cnry_l, (new_cap + 4)*sizeof(stk_elem));
     assert(stk->data_cnry_l != NULL);
-    stk->data = (stk_elem*)(stk->data_cnry_l) + 1;
-    stk->data_cnry_r = (cnry*)(stk->data_cnry_l) + new_cap + 1;
+    stk->data = (stk_elem*)(stk->data_cnry_l) + 2;
+    stk->data_cnry_r = (cnry*)((stk_elem*)(stk->data_cnry_l) + new_cap + 2);
 
-    *(stk->data_cnry_l) = (cnry)(stk->data);
-    *(stk->data_cnry_r) = (cnry)(stk->data);
+    *(stk->data_cnry_l) = CNRY_VAL;
+    *(stk->data_cnry_r) = CNRY_VAL;
     #else
     stk->data = (stk_elem*)realloc(stk->data, new_cap*sizeof(stk_elem));
-    assert(stk->data != NULL); // to-do: more poison
+    assert(stk->data != NULL);
     #endif
 
     #ifdef HASH
@@ -105,7 +104,7 @@ void stk_push(my_stk *stk, stk_elem value)
     stk->hash_num = my_hash(stk, sizeof(*stk) - sizeof(unsigned long long int));
     #endif
 
-    return; // to-do: return error code
+    return;
 }
 
 stk_elem stk_pop(my_stk *stk)
@@ -135,6 +134,8 @@ stk_elem stk_pop(my_stk *stk)
 
 void stk_dtor(my_stk *stk)
 {
+    assert(stk);
+
     #ifdef STK_OK
     if(!STK_OK(stk)) return;
     #endif
@@ -144,7 +145,7 @@ void stk_dtor(my_stk *stk)
     stk->size = -1;
     stk->capacity = -1;
 
-    #ifdef CANARY                                 //to-do: double dtor?
+    #ifdef CANARY
     free(stk->data_cnry_l);
     #else
     free(stk->data);
@@ -169,4 +170,24 @@ unsigned long long int my_hash(const void *data, size_t size)
     }
 
     return ans;
+}
+
+char check_cnry(void *canary)
+{
+    assert(canary);
+
+    const void *cnry_val_ptr = &CNRY_VAL;
+    size_t size = sizeof(cnry);
+
+    while(size > 0)
+    {
+        if(*((int*)canary) != *((const int*)cnry_val_ptr)) return 1;
+
+        canary = ((int*)canary) + 1;
+        cnry_val_ptr = ((const int*)cnry_val_ptr) + 1;
+
+        size -= sizeof(int);
+    }
+
+    return 0;
 }

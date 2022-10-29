@@ -1,6 +1,7 @@
 #include "simple_stack.h"
 
 #define SET_ERR_CODE(condition, code) if(condition) err_code |= (code)
+#define PRINT_ERR(err, msg) if((err_code & err) == err) fprintf(log, "ERROR: %s\n", #msg);
 
 void stk_dump(FILE *log, my_stk *stk, int line, const char *file, const char *func, int err_code)
 {
@@ -25,24 +26,19 @@ void stk_dump(FILE *log, my_stk *stk, int line, const char *file, const char *fu
         return;
     }
 
-    if((err_code & BAD_CAPACITY) == BAD_CAPACITY) fprintf(log, "ERROR: invalid capacity\n");
-    if((err_code & BAD_SIZE) == BAD_SIZE) fprintf(log, "ERROR: invalid size\n");
-    if((err_code & CAPACITY_LESS_SIZE) == CAPACITY_LESS_SIZE) fprintf(log, "ERROR: size > capacity\n");
+    PRINT_ERR(BAD_CAPACITY, invalid capacity);
+    PRINT_ERR(BAD_SIZE, invalid size);
+    PRINT_ERR(CAPACITY_LESS_SIZE, size>capacity);
 
     #ifdef CANARY
-    fprintf(log, "stack canaries:    %10llu %10llu\n", stk->stk_cnry_l, stk->stk_cnry_r);
-    fprintf(log, "data canaries:     %10llu %10llu\n", *(stk->data_cnry_l), *(stk->data_cnry_r));
-    fprintf(log, "expected canaries:\n");
-    fprintf(log, "for stack:         %10llu\n", (cnry)stk);
-    fprintf(log, "for data:          %10llu\n", (cnry)(stk->data));
-    if((err_code & CANARY_DEAD) == CANARY_DEAD)
-    {
-        fprintf(log, "ERROR: canary dead\n");
-    }
+    PRINT_ERR(CANARY_DEAD_LS, left stack canary dead);
+    PRINT_ERR(CANARY_DEAD_RS, right stack canary dead);
+    PRINT_ERR(CANARY_DEAD_LD, left data canary dead);
+    PRINT_ERR(CANARY_DEAD_RD, right data canary dead);
     #endif
 
     #ifdef HASH
-    if((err_code & WRONG_HASH) == WRONG_HASH) fprintf(log, "ERROR: hash discrepancy\n");
+    PRINT_ERR(WRONG_HASH, hash discrepancy);
     #endif
 
     ssize_t i = 0;
@@ -79,10 +75,10 @@ char stk_assert(my_stk *stk, int line, const char *file, const char *func)
     SET_ERR_CODE(stk->capacity < stk->size, CAPACITY_LESS_SIZE);
 
     #ifdef CANARY
-    SET_ERR_CODE(stk->stk_cnry_l != (cnry)stk, CANARY_DEAD);
-    SET_ERR_CODE(stk->stk_cnry_r != (cnry)stk, CANARY_DEAD);
-    SET_ERR_CODE(*(stk->data_cnry_l) != (cnry)(stk->data), CANARY_DEAD);
-    SET_ERR_CODE(*(stk->data_cnry_r) != (cnry)(stk->data), CANARY_DEAD);
+    SET_ERR_CODE(check_cnry(&stk->stk_cnry_l), CANARY_DEAD_LS);
+    SET_ERR_CODE(check_cnry(&stk->stk_cnry_r), CANARY_DEAD_RS);
+    SET_ERR_CODE(check_cnry(stk->data_cnry_r), CANARY_DEAD_LD);
+    SET_ERR_CODE(check_cnry(stk->data_cnry_r), CANARY_DEAD_RD);
     #endif
 
     #ifdef HASH
